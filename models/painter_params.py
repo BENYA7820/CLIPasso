@@ -120,8 +120,6 @@ class Painter(torch.nn.Module):
         points = []
         self.num_control_points = torch.zeros(self.num_segments, dtype=torch.int32) + (self.control_points_per_seg - 2)
         p0 = self.inds_normalised[self.strokes_counter] if self.attention_init else (random.random(), random.random())
-        p0 = (min(p0[0], 1.0 - p0[0]), p0[1])
-
         points.append(p0)
 
         for j in range(self.num_segments):
@@ -132,7 +130,6 @@ class Painter(torch.nn.Module):
                 p0 = p1
         points = torch.tensor(points).to(self.device)
         points[:, 0] *= self.canvas_width
-        points[:, 0].clamp_(0, self.canvas_width / 2)
         points[:, 1] *= self.canvas_height
 
         path = pydiffvg.Path(num_control_points=self.num_control_points,
@@ -448,11 +445,6 @@ class PainterOptimizer:
         self.points_optim.step()
         if self.optim_color:
             self.color_optim.step()
-        with torch.no_grad():
-            for path in self.renderer.shapes:
-                path.points[:, 0].clamp_(
-                    0, self.renderer.canvas_width / 2
-                )
 
     def get_lr(self):
         return self.points_optim.param_groups[0]['lr']
